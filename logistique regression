@@ -1,0 +1,213 @@
+import sys
+import urllib.request
+import os
+
+import pandas as pd
+import numpy as np
+
+%matplotlib inline
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+import sklearn
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+import urllib.request
+data_path = os.path.join("datasets", "")
+download_path = "https://raw.githubusercontent.com/AbdelMahm/FSR/master/IDDLO-29-20/Notebooks/datasets/"
+os.makedirs(data_path, exist_ok=True)
+for filename in ("log_reg_data1.csv", "log_reg_data2.csv"):
+    print("Downloading", filename)
+    url = download_path + filename
+    urllib.request.urlretrieve(url, data_path + filename)
+#load data
+data_exam = pd.read_csv(data_path + '/log_reg_data1.csv')
+data_exam.head()
+X = np.c_[data_exam[['score1","score2"]]]
+y = np.c_[data_exam["admitted"]]
+
+(m,n) = X.shape
+
+# display all examples
+fig = plt.figure()
+plt.title('Student scores')
+plt.xlabel('score 1')
+plt.ylabel('score 2')
+plt.scatter(X[:,0],X[:,1], c='b'.ravel())
+plt.show()
+
+#add a column of 1s to X
+#X = np.insert(X, 0, values=1, axis=1)
+clf = LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial').fit(X, y.ravel())
+
+#print model parameters
+print("w0 =", clf.intercept_[0], ", w1 = ", clf.coef_[0][0], ", w2 = ", clf.coef_[0][1])
+fig = plt.figure()
+ax = plt.axes()
+plt.title('Students Classification')
+plt.xlabel('score 1')
+plt.ylabel('score 2')
+plt.scatter(X[:,0], X[:,1], c=y.ravel())
+
+#generate new points to plot a decision boundary line
+x1_vals = np.linspace(min(X[:,1]), max(X[:,1]), 1000)
+# the boundry is at line at y = 0.5 if y in {0,1} or y = 0 if y in {-1,1},
+# sklearn converts y to the range {-1,1}
+# So, we can then write x2 in terms of x1 using: (w0 + w1*x1 + w2*x2 = 0)
+x2_vals = -(clf.intercept_[0] + clf.coef_[0][0]*x1_vals) / clf.coef_[0][1]
+
+# plot the line
+plt.plot(x1_vals, x2_vals)
+plt.show()
+#prediction probability of one example (the 5th example)
+clf.predict_proba(X[5:6,:]) # the two probabilities sums up to 1.
+
+#predicted class of an example (class with max probability)
+clf.predict(X[5:6,:])
+
+#prediction accuracy on the training set X
+clf.score(X, y)
+data_microchip = pd.read_csv('datasets/log_reg_data2.csv')
+data_microchip.head()
+X = np.c_[data_microchip[["test1","test2"]]]
+y = np.c_[data_microchip["accepted"]]
+
+(m,n) = X.shape
+X1 = X[:,0]
+X2 = X[:,1]
+
+# display
+fig = plt.figure()
+plt.title('Microchips tests')
+plt.xlabel('test 1')
+plt.ylabel('test 2')
+plt.scatter(X1,X2, c=y.ravel())
+plt.show()
+from sklearn.preprocessing import PolynomialFeatures
+
+order = 30
+
+poly = PolynomialFeatures(order)
+Xmap = poly.fit_transform(X)
+
+print(X.shape)
+print(Xmap.shape)
+clf = LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial', C=10**7).fit(Xmap, y.ravel())
+w_star = clf.coef_[0]
+def get_boundary(u, v, theta, order):
+    boundary = np.zeros(shape=(len(u), len(v)))
+    for i in range(len(u)):
+        for j in range(len(v)):
+
+            poly = PolynomialFeatures(order)
+            uv = [np.array([u[i],v[j]])]
+            poly_map = poly.fit_transform([np.array([u[i],v[j]])])
+            boundary[i, j] = (poly_map[0].dot(np.array(theta)))
+
+    return boundary
+
+#plot data and boundary
+fig = plt.figure()
+
+u = np.linspace(-1.1, 1.1, 50)
+v = np.linspace(-1.1, 1.1, 50)
+
+boundary = get_boundary(u, v, w_star, order)
+
+plt.title('microchips')
+plt.xlabel('test 1')
+plt.ylabel('test 2')
+plt.scatter(X1,X2, c=y.ravel())
+plt.contour(u, v, boundary, 0, colors='red')
+plt.legend()
+plt.show()
+acc = np.zeros((10, 20))
+
+C_range = list(10**x for x in range (0, 10))
+
+for idx, c in enumerate(C_range):
+    print(idx, sep='.', end='', flush=True)
+    for order in range(1,21):
+        poly = PolynomialFeatures(order)
+        Xmap = poly.fit_transform(X)
+
+        clf = LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial', C=c).fit(Xmap, y)
+
+        acc[idx,order-1] = clf.score(Xmap, y)
+def get_boundary(u, v, theta, order):
+    boundary = np.zeros(shape=(len(u), len(v)))
+    for i in range(len(u)):
+        for j in range(len(v)):
+            poly = PolynomialFeatures(order)
+            uv = [np.array([u[i],v[j]])]
+            poly_map = poly.fit_transform([np.array([u[i],v[j]])])
+            boundary[i, j] = (poly_map[0].dot(np.array(theta)))
+
+    return boundary
+
+#plot data and boundary
+fig = plt.figure()
+
+u = np.linspace(-1.1, 1.1, 50)
+v = np.linspace(-1.1, 1.1, 50)
+
+boundary = get_boundary(u, v, w_star, order)
+
+plt.title('microchips')
+plt.xlabel('test 1')
+plt.ylabel('test 2')
+plt.scatter(X1,X2, c=y.ravel())
+plt.contour(u, v, boundary, 0, colors='red')
+plt.legend()
+plt.show()
+clf.score(Xmap, y)
+acc = np.zeros((10, 20))
+
+C_range = list(10**x for x in range (0, 10))
+
+for idx, c in enumerate(C_range):
+    print(idx, sep='.', end='', flush=True)
+    for order in range(1,21):
+        poly = PolynomialFeatures(order)
+        Xmap = poly.fit_transform(X)
+
+        clf = LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial', C=c).fit(Xmap, y)
+
+        acc[idx,order-1] = clf.score(Xmap, y)
+from numpy import unravel_index
+acc_max_idx = unravel_index(acc.argmax(), acc.shape)
+print(acc_max_idx)
+print(acc[acc_max_idx[0], acc_max_idx[1]])
+
+c_star = C_range[acc_max_idx[0]]
+order_star = acc_max_idx[1]
+
+print("c_star = ", c_star, ", order_star = ", order_star)
+
+fig = plt.figure()
+fig.clf()
+ax = fig.add_subplot(1,1,1)
+img = ax.imshow(acc, interpolation='nearest', vmin=0.0, vmax=1.0)
+fig.colorbar(img)
+
+plt.show()
+fig = plt.figure()
+
+u = np.linspace(-1.1, 1.1, 50)
+v = np.linspace(-1.1, 1.1, 50)
+
+poly = PolynomialFeatures(order_star)
+Xmap = poly.fit_transform(X)
+clf = LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial', C=c_star).fit(Xmap, y)
+theta_star =  clf.coef_[0]
+
+boundary_green = get_boundary(u, v, theta_star, order_star)
+
+plt.title('score=%f' %clf.score(Xmap, y))
+plt.xlabel('test 1')
+plt.ylabel('test 2')
+plt.scatter(X1,X2, c=y.ravel())
+plt.contour(u, v, boundary_green, 0, colors='green')
+plt.legend()
+plt.show() 
